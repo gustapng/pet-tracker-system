@@ -21,7 +21,6 @@ class PetController extends Controller
                 'age' => $request->age,
             ]);
 
-            // 2. Salva a Zona de Segurança atrelada ao Pet
             SafeZone::create([
                 'pet_id' => $pet->id,
                 'latitude' => $request->safe_zone['latitude'],
@@ -29,12 +28,10 @@ class PetController extends Controller
                 'radius_meters' => $request->safe_zone['radius_meters'] ?? 50,
             ]);
 
-            // Confirma as duas operações no banco
             DB::commit();
 
             return response()->json($pet, 201);
         } catch (\Exception $e) {
-            // Se algo falhar, desfaz tudo
             DB::rollBack();
             return response()->json(['error' => 'Erro ao cadastrar o pet'], 500);
         }

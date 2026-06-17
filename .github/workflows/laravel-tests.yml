@@ -34,6 +34,9 @@ jobs:
     - name: Generate Application Key
       run: php artisan key:generate
 
+    - name: Generate JWT Secret
+      run: php artisan jwt:secret --force
+
     - name: Execute Tests via Artisan
       env:
         DB_CONNECTION: sqlite
