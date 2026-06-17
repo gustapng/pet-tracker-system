@@ -1,0 +1,61 @@
+version: '3.8'
+
+services:
+  # MySQL para o Serviço Core (Laravel)
+  mysql:
+    image: mysql:8.0
+    container_name: pet_mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: pet_core
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: pet_user
+      MYSQL_PASSWORD: secret123
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - pet_network
+
+  # MongoDB para o Serviço de Rastreamento (Hyperf)
+  mongodb:
+    image: mongo:latest
+    container_name: pet_mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - pet_network
+
+  # RabbitMQ para a mensageria entre os microserviços
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: pet_rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"   # Porta do protocolo AMQP (para o código conectar)
+      - "15672:15672" # Porta do painel de administração web
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - pet_network
+
+# Definindo volumes nomeados para persistência dos dados
+volumes:
+  mysql_data:
+  mongo_data:
+  rabbitmq_data:
+
+# Criando uma rede isolada para os serviços conversarem entre si
+networks:
+  pet_network:
+    driver: bridge
