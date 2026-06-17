@@ -49,6 +49,23 @@ services:
     networks:
       - pet_network
 
+  # Motor de Alta Performance (Hyperf) para ingestão de GPS
+  tracker-api:
+    image: hyperf/hyperf:8.3-alpine-v3.19-swoole
+    container_name: pet_hyperf
+    restart: unless-stopped
+    volumes:
+      # Espelha a pasta local para dentro do container
+      - ./tracker-api:/opt/www
+    ports:
+      - "9501:9501"
+    command: php /opt/www/bin/hyperf.php start
+    depends_on:
+      - rabbitmq
+      - mongodb
+    networks:
+      - pet_network
+
 # Definindo volumes nomeados para persistência dos dados
 volumes:
   mysql_data:
