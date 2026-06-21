@@ -46,12 +46,27 @@ class ConsumePetLocations extends Command
 
         $callback = function (AMQPMessage $msg) {
             $payload = json_decode($msg->body, true);
-            $this->line(" [x] Nova coordenada! Pet ID: " . $payload['pet_id'] . " | Lat: " . $payload['latitude'] . " | Lng: " . $payload['longitude']);
+
+            try {
+                \App\Models\PetLocation::create([
+                    'pet_id' => $payload['pet_id'],
+                    'latitude' => $payload['latitude'],
+                    'longitude' => $payload['longitude'],
+                    'speed' => $payload['speed'] ?? null,
+                    'battery_level' => $payload['battery_level'] ?? null,
+                    'recorded_at' => isset($payload['timestamp']) 
+                        ? \Carbon\Carbon::createFromTimestamp($payload['timestamp']) 
+                        : now(),
+                ]);
+
+                $this->line(" [x] Nova coordenada! Pet ID: " . $payload['pet_id'] . " | Lat: " . $payload['latitude'] . " | Lng: " . $payload['longitude']);
             
-            $channel = $msg->delivery_info['channel'];
-            $deliveryTag = $msg->delivery_info['delivery_tag'];
-            
-            $channel->basic_ack($deliveryTag);
+                $channel = $msg->delivery_info['channel'];
+                $deliveryTag = $msg->delivery_info['delivery_tag'];
+                $channel->basic_ack($deliveryTag);
+            } catch (\Exception $e) {
+                $this->error(" [!] Erro ao salvar: " . $e->getMessage());
+            }
         };
 
         $channel->basic_consume($queue, '', false, false, false, false, $callback);

@@ -4,6 +4,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PetController;
+use App\Http\Controllers\Api\LocationHistoryController;
 
 Route::group(['prefix' => 'auth'], function () {
     route::post('login', [AuthController::class, 'login']);
@@ -19,3 +20,5 @@ Route::middleware('auth:api')->group(function () {
     Route::get('pets', [PetController::class, 'index']);
     Route::post('pets', [PetController::class, 'store']);
 });
+
+Route::get('/pets/{petId}/locations', [LocationHistoryController::class, 'getHistory']);
