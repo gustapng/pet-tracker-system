@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # MySQL para o Serviço Core (Laravel)
   mysql:
