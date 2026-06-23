@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+@theme {
+    --color-brand-primary: #f8fb64;
+    --color-brand-secondary: #f8fb64;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}

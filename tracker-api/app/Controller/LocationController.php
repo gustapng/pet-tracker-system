@@ -24,6 +24,8 @@ class LocationController extends AbstractController
             'pet_id' => $request->input('pet_id'),
             'latitude' => $request->input('latitude'),
             'longitude' => $request->input('longitude'),
+            'speed' => $request->input('speed') ?? null,
+            'battery_level' => $request->input('battery_level') ?? null,
             'timestamp' => time(),
         ];
 
