@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use App\Http\Middleware\CheckApiKey;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\PetController;
 use App\Http\Controllers\Api\LocationHistoryController;
@@ -21,4 +22,4 @@ Route::middleware('auth:api')->group(function () {
     Route::post('pets', [PetController::class, 'store']);
 });
 
-Route::get('/pets/{petId}/locations', [LocationHistoryController::class, 'getHistory']);
+Route::get('/pets/{petId}/locations', [LocationHistoryController::class, 'getHistory'])->middleware(CheckApiKey::class);
