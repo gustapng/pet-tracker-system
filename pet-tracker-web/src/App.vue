@@ -1,56 +1,59 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, watch } from 'vue'
 import L from 'leaflet'
 import axios from 'axios'
+import { usePetStore } from './stores/pet'
+import { storeToRefs } from 'pinia'
 
 const mapContainer = ref<HTMLElement | null>(null)
 let map: L.Map | null = null
 let polyline: L.Polyline | null = null
 let marker: L.Marker | null = null
-const latestBattery = ref<string | number>('--')
-const latestSpeed = ref<string | number>('--')
-const lastUpdated = ref<string>('Carregando...')
-const isOnline = ref<boolean>(false)
 
-const fetchHistoryAndDrawMap = async () => {
-  try {
-    const response = await axios.get('http://localhost:8000/api/pets/1/locations')
-    const locations = response.data.data
+const petStore = usePetStore()
 
-    if (locations.length === 0) return
+const { latestPosition } = storeToRefs(petStore)
 
-    const currentData = locations[0]
-    
-    latestBattery.value = currentData.battery_level ?? '--'
-    latestSpeed.value = currentData.speed ?? '--'
-    // for example this variable always is true
-    isOnline.value = true
-    
-    const dateObj = new Date(currentData.recorded_at)
-    lastUpdated.value = dateObj.toLocaleDateString('pt-BR') + ' às ' + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+const initializeMapAndData = async () => {
+  await petStore.fetchLocationHistory(1)
 
-    const pathCoordinates = locations
-      .map((loc: any) => [parseFloat(loc.latitude), parseFloat(loc.longitude)])
-      .reverse()
+  if (petStore.pathCoordinates.length === 0) return
 
-    const latestPosition = pathCoordinates[pathCoordinates.length - 1]
+  const initialPosition = petStore.pathCoordinates[petStore.pathCoordinates.length - 1]
 
-    map?.setView(latestPosition, 15)
+  map?.setView(initialPosition, 15)
 
-    if (polyline) map?.removeLayer(polyline)
-    if (marker) map?.removeLayer(marker)
+  polyline = L.polyline(petStore.pathCoordinates, { color: '#3498db', weight: 4 }).addTo(map!)
 
-    polyline = L.polyline(pathCoordinates, { color: '#3498db', weight: 4 }).addTo(map!)
-
-    marker = L.marker(latestPosition)
-      .addTo(map!)
-      .bindPopup(`<b>Estou aqui!</b><br>Última atualização: ${new Date(locations[0].recorded_at).toLocaleTimeString()}`)
-      .openPopup()
-
-  } catch (error) {
-    console.error("Erro ao buscar histórico do Pet:", error)
-  }
+  marker = L.marker(initialPosition)
+    .addTo(map!)
+    .bindPopup(`<b>Estou aqui!</b><br>Atualizado: ${petStore.lastUpdated}`)
+    .openPopup()
 }
+
+watch(latestPosition, (newPosition) => {
+  console.log("📍 Observador disparou! Nova posição:", newPosition)
+
+  if (!newPosition || !map) return
+
+  if (!marker) {
+    marker = L.marker(newPosition)
+      .addTo(map)
+      .bindPopup(`<b>Estou aqui!</b><br>Atualizado: ${petStore.lastUpdated}`)
+      .openPopup()
+  } else {
+    marker.setLatLng(newPosition)
+    marker.getPopup()?.setContent(`<b>Estou aqui!</b><br>Atualizado: ${petStore.lastUpdated}`)
+  }
+
+  if (!polyline) {
+    polyline = L.polyline([newPosition], { color: '#3498db', weight: 4 }).addTo(map)
+  } else {
+    polyline.addLatLng(newPosition)
+  }
+
+  map.flyTo(newPosition, 16, { animate: true, duration: 1.5 })
+}, { deep: true })
 
 onMounted(() => {
   if (!mapContainer.value) return
@@ -62,7 +65,7 @@ onMounted(() => {
     attribution: '© OpenStreetMap'
   }).addTo(map)
 
-  fetchHistoryAndDrawMap()
+  initializeMapAndData()
 })
 </script>
 
@@ -79,11 +82,11 @@ onMounted(() => {
             <h1 class="text-xl font-bold tracking-tight">Rex</h1>
             <div class="flex items-center gap-2 mt-1">
               <span class="relative flex h-2.5 w-2.5">
-                <span v-if="isOnline" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                <span class="relative inline-flex rounded-full h-2.5 w-2.5" :class="isOnline ? 'bg-emerald-500' : 'bg-red-500'"></span>
+                <span v-if="petStore.isOnline" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2.5 w-2.5" :class="petStore.isOnline ? 'bg-emerald-500' : 'bg-red-500'"></span>
               </span>
               <span class="text-xs text-slate-400 uppercase tracking-wider">
-                {{ isOnline ? 'Sinal Ativo' : 'Offline' }}
+                {{ petStore.isOnline ? 'Sinal Ativo' : 'Offline' }}
               </span>
             </div>
           </div>
@@ -93,19 +96,19 @@ onMounted(() => {
       <nav class="flex-1 overflow-y-auto p-4 space-y-6">
         
         <div>
-          <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">{{ isOnline ? 'Status em Tempo Real' : 'Último registro' }}</h2>
+          <h2 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">{{ petStore.isOnline ? 'Status em Tempo Real' : 'Último registro' }}</h2>
           <div class="space-y-2">
             <div class="bg-slate-200/50 p-3 rounded-lg flex justify-between items-center border border-slate-600/50">
               <span class="text-sm text-slate-400">Bateria</span>
-              <span class="font-mono font-medium text-emerald-400">{{ latestBattery }}%</span>
+              <span class="font-mono font-medium text-emerald-400">{{ petStore.latestBattery }}%</span>
             </div>
             <div class="bg-slate-200/50 p-3 rounded-lg flex justify-between items-center border border-slate-600/50">
               <span class="text-sm text-slate-400">Velocidade</span>
-              <span class="font-mono font-medium text-amber-400">{{ latestSpeed }} km/h</span>
+              <span class="font-mono font-medium text-amber-400">{{ petStore.latestSpeed }} km/h</span>
             </div>
             <div class="bg-slate-200/50 p-3 rounded-lg flex flex-col border border-slate-600/50">
               <span class="text-sm text-slate-400 mb-1">Última atualização</span>
-              <span class="text-xs text-slate-600">{{ lastUpdated }}</span>
+              <span class="text-xs text-slate-600">{{ petStore.lastUpdated }}</span>
             </div>
           </div>
         </div>

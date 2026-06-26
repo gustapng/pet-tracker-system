@@ -21,8 +21,8 @@ class PetTest extends TestCase
             'breed' => 'Golden Retriever',
             'age' => 3,
             'safe_zone' => [
-                'latitude' => -16.3722,
-                'longitude' => -39.5811,
+                'latitude' => -23.588333,
+                'longitude' => -46.658890,
                 'radius_meters' => 100
             ]
         ];
@@ -38,7 +38,7 @@ class PetTest extends TestCase
         ]);
 
         $this->assertDatabaseHas('safe_zones', [
-            'latitude' => -16.3722,
+            'latitude' => -23.588333,
             'radius_meters' => 100,
         ]);
     }

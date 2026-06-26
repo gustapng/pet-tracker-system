@@ -48,7 +48,7 @@ class ConsumePetLocations extends Command
             $payload = json_decode($msg->body, true);
 
             try {
-                \App\Models\PetLocation::create([
+                $newLocation = \App\Models\PetLocation::create([
                     'pet_id' => $payload['pet_id'],
                     'latitude' => $payload['latitude'],
                     'longitude' => $payload['longitude'],
@@ -58,6 +58,8 @@ class ConsumePetLocations extends Command
                         ? \Carbon\Carbon::createFromTimestamp($payload['timestamp']) 
                         : now(),
                 ]);
+
+                broadcast(new \App\Events\PetLocationUpdated($newLocation));
 
                 $this->line(" [x] Nova coordenada! Pet ID: " . $payload['pet_id'] . " | Lat: " . $payload['latitude'] . " | Lng: " . $payload['longitude']);
             
