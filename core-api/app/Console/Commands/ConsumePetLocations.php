@@ -16,10 +16,10 @@ class ConsumePetLocations extends Command
     public function handle()
     {
         $connection = new AMQPStreamConnection(
-            host: 'localhost',
-            port: 5672,
-            user: 'guest',
-            password: 'guest',
+            host: env('RABBITMQ_HOST', 'rabbitmq'),
+            port: env('RABBITMQ_PORT', 5672),
+            user: env('RABBITMQ_USER', 'guest'),
+            password: env('RABBITMQ_PASSWORD', 'guest'),
             vhost: '/',
             insist: false,
             login_method: 'AMQPLAIN',
@@ -42,7 +42,7 @@ class ConsumePetLocations extends Command
         $channel->queue_declare($queue, false, true, false, false);
         $channel->queue_bind($queue, $exchange, $routingKey);
 
-        $this->info(" [*] Worker Blindado escutando a fila '$queue'. Pressione CTRL+C para sair.");
+        $this->info(" [*] Worker escutando a fila '$queue'. Pressione CTRL+C para sair.");
 
         $callback = function (AMQPMessage $msg) {
             $payload = json_decode($msg->body, true);

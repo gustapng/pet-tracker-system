@@ -15,45 +15,55 @@ const petStore = usePetStore()
 const { latestPosition } = storeToRefs(petStore)
 
 const initializeMapAndData = async () => {
-  await petStore.fetchLocationHistory(1)
+  await petStore.fetchLocationHistory(1);
+  if (petStore.pathCoordinates.length === 0) return;
 
-  if (petStore.pathCoordinates.length === 0) return
+  const lastPos = petStore.pathCoordinates[petStore.pathCoordinates.length - 1];
+  const pureCoord: [number, number] = [Number(lastPos[0]), Number(lastPos[1])];
 
-  const initialPosition = petStore.pathCoordinates[petStore.pathCoordinates.length - 1]
+  map?.setView(pureCoord, 15);
 
-  map?.setView(initialPosition, 15)
+  updateMarker(pureCoord);
 
-  polyline = L.polyline(petStore.pathCoordinates, { color: '#3498db', weight: 4 }).addTo(map!)
-
-  marker = L.marker(initialPosition)
-    .addTo(map!)
-    .bindPopup(`<b>Estou aqui!</b><br>Atualizado: ${petStore.lastUpdated}`)
-    .openPopup()
+  polyline = L.polyline(petStore.pathCoordinates, { color: '#3498db', weight: 4 }).addTo(map!);
 }
 
-watch(latestPosition, (newPosition) => {
-  console.log("📍 Observador disparou! Nova posição:", newPosition)
-
-  if (!newPosition || !map) return
+const updateMarker = (position) => {
+  if (!map) return;
 
   if (!marker) {
-    marker = L.marker(newPosition)
+    // Se não existe, cria um novo (apenas na primeira vez)
+    marker = L.marker(position)
       .addTo(map)
       .bindPopup(`<b>Estou aqui!</b><br>Atualizado: ${petStore.lastUpdated}`)
-      .openPopup()
+      .openPopup();
   } else {
-    marker.setLatLng(newPosition)
-    marker.getPopup()?.setContent(`<b>Estou aqui!</b><br>Atualizado: ${petStore.lastUpdated}`)
+    // Se já existe, apenas move a coordenada (não cria um novo!)
+    marker.setLatLng(position);
   }
 
-  if (!polyline) {
-    polyline = L.polyline([newPosition], { color: '#3498db', weight: 4 }).addTo(map)
-  } else {
-    polyline.addLatLng(newPosition)
-  }
+  // Move o mapa para a posição do marcador
+  map.panTo(position);
+};
 
-  map.flyTo(newPosition, 16, { animate: true, duration: 1.5 })
-}, { deep: true })
+watch(() => petStore.pathCoordinates.length, (newLength, oldLength) => {
+  if (newLength > oldLength) {
+    const newPos = petStore.pathCoordinates[newLength - 1];
+    const pureCoord: [number, number] = [Number(newPos[0]), Number(newPos[1])];
+
+    if (!map) return;
+
+    updateMarker(pureCoord);
+
+    if (!polyline) {
+      polyline = L.polyline([pureCoord], { color: '#3498db', weight: 4 }).addTo(map);
+    } else {
+      polyline.addLatLng(pureCoord);
+    }
+    
+    map.panTo(pureCoord, { animate: true, duration: 1.5 });
+  }
+})
 
 onMounted(() => {
   if (!mapContainer.value) return

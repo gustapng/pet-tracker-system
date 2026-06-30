@@ -64,8 +64,6 @@ export const usePetStore = defineStore('pet', () => {
   const listenForRealTimeUpdates = (petId: number) => {
     echo.channel(`pet.${petId}`)
       .listen('PetLocationUpdated', (eventData: any) => {
-        console.log("Nova coordenada recebida via WebSocket!", eventData)
-
         latestBattery.value = eventData.battery_level ?? '--'
         latestSpeed.value = eventData.speed ?? '--'
         

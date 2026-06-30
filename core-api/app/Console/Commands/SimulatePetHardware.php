@@ -30,7 +30,7 @@ class SimulatePetHardware extends Command
             $speed = rand(2, 12);
 
             try {
-                $response = Http::post('http://localhost:9501/api/location/update', [
+                $response = Http::post('http://tracker-api:9501/api/location/update', [
                     'pet_id' => 1,
                     'latitude' => $lat,
                     'longitude' => $lng,

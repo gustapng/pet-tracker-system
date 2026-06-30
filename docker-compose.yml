@@ -1,5 +1,5 @@
 services:
-  # MySQL para o Serviço Core (Laravel)
+  # MySQL for the Core Service (Laravel)
   mysql:
     image: mysql:8.0
     container_name: pet_mysql
@@ -16,7 +16,7 @@ services:
     networks:
       - pet_network
 
-  # MongoDB para o Serviço de Rastreamento (Hyperf)
+  # MongoDB for the Tracking Service (Hyperf)
   mongodb:
     image: mongo:latest
     container_name: pet_mongo
@@ -31,7 +31,7 @@ services:
     networks:
       - pet_network
 
-  # RabbitMQ para a mensageria entre os microserviços
+  # RabbitMQ for messaging between microservices
   rabbitmq:
     image: rabbitmq:3-management-alpine
     container_name: pet_rabbitmq
@@ -40,20 +40,19 @@ services:
       RABBITMQ_DEFAULT_USER: guest
       RABBITMQ_DEFAULT_PASS: guest
     ports:
-      - "5672:5672"   # Porta do protocolo AMQP (para o código conectar)
-      - "15672:15672" # Porta do painel de administração web
+      - "5672:5672"   # AMQP protocol port (for the code to connect)
+      - "15672:15672" # Web administration panel port
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - pet_network
 
-  # Motor de Alta Performance (Hyperf) para ingestão de GPS
+  # High-Performance Engine (Hyperf) for GPS Ingestion
   tracker-api:
     image: hyperf/hyperf:8.3-alpine-v3.19-swoole
     container_name: pet_hyperf
     restart: unless-stopped
     volumes:
-      # Espelha a pasta local para dentro do container
       - ./tracker-api:/opt/www
     ports:
       - "9501:9501"
@@ -64,8 +63,43 @@ services:
     networks:
       - pet_network
 
-  # VueJS para o Front-End
-  pet_web:
+  # Core API (Laravel REST API) - O CÉREBRO COM AUTO-SETUP
+  core-api:
+    build:
+      context: ./core-api
+    container_name: pet_core_api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./core-api:/var/www/html
+    depends_on:
+      - mysql
+      - rabbitmq
+    networks:
+      - pet_network
+    command: >
+      sh -c "
+        echo '🧹 Limpando cache do Laravel...' &&
+        php artisan config:clear &&
+        echo '⏳ Aguardando o MySQL estar pronto...' &&
+        echo '' &&
+        php /var/www/html/wait-for-db.php &&
+        echo '' &&
+        echo '🛠️ Banco de dados online! Executando Migrations...' &&
+        php artisan migrate --seed --force &&
+        echo ''
+        echo '✅ SETUP CONCLUÍDO COM SUCESSO!'
+        echo '🌐 Acesse: http://localhost:5173'
+        echo '🛑 Parar: docker-compose stop'
+        echo '🗑️ Excluir Containers: docker-compose down -v'
+        echo ''
+        echo '🚀 Iniciando Servidor Web...' &&
+        php artisan serve --host=0.0.0.0 --port=8000
+      "
+
+  # VueJS for the Front-End
+  pet-web:
     build:
       context: ./pet-tracker-web
       dockerfile: Dockerfile
@@ -77,14 +111,78 @@ services:
       - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
+    networks:
+      - pet_network
 
-# Definindo volumes nomeados para persistência dos dados
+  # ---------------------------------------------------------
+  # 1. WEBSOCKET SERVER (Laravel Reverb)
+  # ---------------------------------------------------------
+  reverb-server:
+    build:
+      context: ./core-api
+    container_name: pet_reverb
+    command: php artisan reverb:start --host=0.0.0.0 --port=8080
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./core-api:/var/www/html
+    depends_on:
+      - mysql
+    networks:
+      - pet_network
+
+  # ---------------------------------------------------------
+  # 2. QUEUE CONSUMER (Worker RabbitMQ)
+  # ---------------------------------------------------------
+  queue-worker:
+    build:
+      context: ./core-api
+    container_name: pet_worker
+    restart: unless-stopped
+    environment:
+      - DB_CONNECTION=mysql
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_DATABASE=pet_core
+      - DB_USERNAME=pet_user
+      - DB_PASSWORD=secret123
+      - REVERB_HOST=reverb-server
+      - RABBITMQ_HOST=rabbitmq
+      - RABBITMQ_PORT=5672
+      - RABBITMQ_USER=guest
+      - RABBITMQ_PASSWORD=guest
+    command: sh -c "sleep 20 && php artisan rabbitmq:consume-locations"
+    volumes:
+      - ./core-api:/var/www/html
+    depends_on:
+      - rabbitmq
+      - mysql
+    networks:
+      - pet_network
+
+  # ---------------------------------------------------------
+  # 3. HARDWARE SIMULATOR
+  # ---------------------------------------------------------
+  hardware-simulator:
+    build:
+      context: ./core-api
+    container_name: pet_simulator
+    # Aguarda 20 segundos para o core-api criar o Pet Rex no Seeder!
+    command: sh -c "sleep 20 && php artisan pet:simulate-hardware"
+    volumes:
+      - ./core-api:/var/www/html
+    depends_on:
+      - tracker-api
+    networks:
+      - pet_network
+
+# Defining named volumes for data persistence
 volumes:
   mysql_data:
   mongo_data:
   rabbitmq_data:
 
-# Criando uma rede isolada para os serviços conversarem entre si
+# Creating an isolated network for services to communicate with each other
 networks:
   pet_network:
     driver: bridge
