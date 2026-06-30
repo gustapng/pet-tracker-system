@@ -1,4 +1,8 @@
-[English](##English)
+# 🐾 Pet Tracker
+
+[Português](#-pet-tracker---arquitetura-de-microsserviços) | [English](#-pet-tracker---microservices-architecture)
+
+---
 
 # 🐾 Pet Tracker - Arquitetura de Microsserviços
 
@@ -84,7 +88,6 @@ Painel RabbitMQ: http://localhost:15672 (guest / guest)
 ---
 
 # 🐾 Pet Tracker - Microservices Architecture
-## English
 
 This is the central repository for **Pet Tracker**, a pet tracking ecosystem. The project is designed using a microservices architecture focused on high availability, asynchronous processing, and end-to-end security.
 
