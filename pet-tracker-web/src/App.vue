@@ -31,18 +31,18 @@ const initializeMapAndData = async () => {
 const updateMarker = (position) => {
   if (!map) return;
 
+  const popupHtml = `<b>Estou aqui!</b><br>Atualizado: ${petStore.lastUpdated}`;
+
   if (!marker) {
-    // Se não existe, cria um novo (apenas na primeira vez)
     marker = L.marker(position)
       .addTo(map)
-      .bindPopup(`<b>Estou aqui!</b><br>Atualizado: ${petStore.lastUpdated}`)
+      .bindPopup(popupHtml)
       .openPopup();
   } else {
-    // Se já existe, apenas move a coordenada (não cria um novo!)
     marker.setLatLng(position);
+    marker.setPopupContent(popupHtml); 
   }
 
-  // Move o mapa para a posição do marcador
   map.panTo(position);
 };
 
