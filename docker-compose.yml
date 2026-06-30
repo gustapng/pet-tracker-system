@@ -44,59 +44,51 @@ services:
       - "15672:15672" # Web administration panel port
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_running"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
     networks:
       - pet_network
 
   # High-Performance Engine (Hyperf) for GPS Ingestion
   tracker-api:
-    image: hyperf/hyperf:8.3-alpine-v3.19-swoole
+    build:
+      context: ./tracker-api
     container_name: pet_hyperf
     restart: unless-stopped
     volumes:
       - ./tracker-api:/opt/www
+      - /opt/www/vendor
     ports:
       - "9501:9501"
-    command: php /opt/www/bin/hyperf.php start
     depends_on:
-      - rabbitmq
-      - mongodb
+      rabbitmq:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
     networks:
       - pet_network
 
-  # Core API (Laravel REST API) - O CÉREBRO COM AUTO-SETUP
+  # Core API (Laravel REST API)
   core-api:
     build:
       context: ./core-api
     container_name: pet_core_api
     restart: unless-stopped
+    environment:
+      - RUN_MIGRATIONS=true
     ports:
       - "8000:8000"
     volumes:
       - ./core-api:/var/www/html
+      - /var/www/html/vendor
     depends_on:
       - mysql
       - rabbitmq
     networks:
       - pet_network
-    command: >
-      sh -c "
-        echo '🧹 Limpando cache do Laravel...' &&
-        php artisan config:clear &&
-        echo '⏳ Aguardando o MySQL estar pronto...' &&
-        echo '' &&
-        php /var/www/html/wait-for-db.php &&
-        echo '' &&
-        echo '🛠️ Banco de dados online! Executando Migrations...' &&
-        php artisan migrate --seed --force &&
-        echo ''
-        echo '✅ SETUP CONCLUÍDO COM SUCESSO!'
-        echo '🌐 Acesse: http://localhost:5173'
-        echo '🛑 Parar: docker-compose stop'
-        echo '🗑️ Excluir Containers: docker-compose down -v'
-        echo ''
-        echo '🚀 Iniciando Servidor Web...' &&
-        php artisan serve --host=0.0.0.0 --port=8000
-      "
 
   # VueJS for the Front-End
   pet-web:
@@ -151,7 +143,7 @@ services:
       - RABBITMQ_PORT=5672
       - RABBITMQ_USER=guest
       - RABBITMQ_PASSWORD=guest
-    command: sh -c "sleep 20 && php artisan rabbitmq:consume-locations"
+    command: ["php", "artisan", "rabbitmq:consume-locations"]
     volumes:
       - ./core-api:/var/www/html
     depends_on:
