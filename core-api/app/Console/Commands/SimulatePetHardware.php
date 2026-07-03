@@ -49,7 +49,7 @@ class SimulatePetHardware extends Command
                 $this->error(" [!] Erro de conexão com o Hyperf: " . $e->getMessage());
             }
 
-            sleep(30);
+            sleep(20);
         }
     }
 }

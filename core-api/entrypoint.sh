@@ -29,7 +29,8 @@ if [ $# -gt 0 ]; then
 else
     echo '===================================================='
     echo '✅ SETUP CONCLUÍDO COM SUCESSO!'
-    echo '🌐 Acesse: http://localhost:8000'
+    echo '🌐 Acesse: http://localhost:5173'
+    echo '🛑 Parar: docker-compose stop | 🧹 Limpar: docker-compose down -v'
     echo '===================================================='
     echo "🚀 Iniciando Servidor Web Principal..."
     exec php artisan serve --host=0.0.0.0 --port=8000
