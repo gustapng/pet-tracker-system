@@ -46,8 +46,8 @@ Todo o ecossistema está envelopado em containers Docker. Você não precisa ter
 
 1. Clone este repositório:
    ```bash
-   git clone [https://github.com/gustapng/pet-tracker-system](https://github.com/gustapng/pet-tracker-system)
-   cd pet-tracker
+   git clone https://github.com/gustapng/pet-tracker-system.git
+   cd pet-tracker-system
    cd core-api
    cp .env.example .env
 
@@ -136,8 +136,8 @@ The entire ecosystem is containerized. You do not need to have PHP, Node.js, or 
 
 1. Clone this repository:
    ```bash
-   git clone [https://github.com/your-username/pet-tracker.git](https://github.com/your-username/pet-tracker.git)
-   cd pet-tracker
+   git clone https://github.com/gustapng/pet-tracker-system.git
+   cd pet-tracker-system
    cd core-api
    cp .env.example .env
    ```
